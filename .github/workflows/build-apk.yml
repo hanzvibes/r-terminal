@@ -65,7 +65,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           ./scripts/run-docker.sh ./clean.sh
-          ./scripts/run-docker.sh ./scripts/build-bootstraps.sh --architectures "$TERMUX_ARCH" -f
+          ./scripts/run-docker.sh ./scripts/build-bootstraps.sh --architectures "$TERMUX_ARCH" --no-build-unneeded-subpackages
           mkdir -p ../termux-app/app/src/main/cpp
           cp "bootstrap-$TERMUX_ARCH.zip" ../termux-app/app/src/main/cpp/
           test -s "../termux-app/app/src/main/cpp/bootstrap-$TERMUX_ARCH.zip"
