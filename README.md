@@ -9,7 +9,7 @@ R-Terminal is an Android terminal app build overlay based on the upstream Termux
 - App label: `R-Terminal`
 - Target ABI: `arm64-v8a`
 - GitHub Actions builds a debug APK artifact.
-- Debian + OpenCode can be installed from the R-Terminal shell with `bash scripts/setup-debian-opencode.sh`.
+- Debian + OpenCode setup helper is available in this repository and can be run from the R-Terminal shell after cloning it.
 
 ## Build
 
@@ -20,19 +20,16 @@ Push to `main` or run **Actions → Build R-Terminal APK**. The workflow checks 
 Open R-Terminal and run:
 
 ```sh
-pkg update -y
-pkg install -y proot-distro git
-proot-distro install debian
-proot-distro login debian
+pkg install -y git
+git clone --depth 1 https://github.com/hanzvibes/r-terminal.git
+cd r-terminal
+bash scripts/setup-debian-opencode.sh
 ```
 
-Inside Debian, run the setup helper (or follow its commands) to install Node.js, npm, Git, and OpenCode:
+The helper installs Debian through `proot-distro`, then installs Node.js, npm, Git, and OpenCode inside Debian. Start OpenCode later with:
 
 ```sh
-apt update
-apt install -y ca-certificates curl git nodejs npm
-npm install -g opencode-ai
-opencode
+r-opencode
 ```
 
 ## Important limitations
