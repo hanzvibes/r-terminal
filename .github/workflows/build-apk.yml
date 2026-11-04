@@ -51,22 +51,24 @@ jobs:
           path: upstream/termux-packages
 
       - name: Apply R-Terminal app identity
+        shell: bash
         run: |
+          set -Eeuo pipefail
           python3 scripts/patch-termux.py upstream/termux-app
           python3 scripts/patch-bootstrap-gradle.py upstream/termux-app/app/build.gradle
-          sed -i 's/^TERMUX_APP_PACKAGE=.*/TERMUX_APP_PACKAGE="'"$TERMUX_PACKAGE_NAME"'"/' upstream/termux-packages/scripts/properties.sh
-          grep -n 'TERMUX_APP_PACKAGE' upstream/termux-packages/scripts/properties.sh | head
+          sed -i 's/^TERMUX_APP__PACKAGE_NAME=.*/TERMUX_APP__PACKAGE_NAME="'"$TERMUX_PACKAGE_NAME"'"/' upstream/termux-packages/scripts/properties.sh
+          grep -nE '^TERMUX_APP(__PACKAGE_NAME|_PACKAGE)=' upstream/termux-packages/scripts/properties.sh
 
       - name: Build custom ARM64 bootstrap
         working-directory: upstream/termux-packages
         shell: bash
         run: |
           set -Eeuo pipefail
-          ./scripts/run-docker.sh ./scripts/clean.sh
-          ./scripts/run-docker.sh ./scripts/build-bootstraps.sh --architectures "$TERMUX_ARCH" --android10 -f
+          ./scripts/run-docker.sh ./clean.sh
+          ./scripts/run-docker.sh ./scripts/build-bootstraps.sh --architectures "$TERMUX_ARCH" -f
           mkdir -p ../termux-app/app/src/main/cpp
-          cp bootstrap-aarch64.zip ../termux-app/app/src/main/cpp/
-          test -s ../termux-app/app/src/main/cpp/bootstrap-aarch64.zip
+          cp "bootstrap-$TERMUX_ARCH.zip" ../termux-app/app/src/main/cpp/
+          test -s "../termux-app/app/src/main/cpp/bootstrap-$TERMUX_ARCH.zip"
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -86,8 +88,9 @@ jobs:
           ./gradlew --no-daemon :app:assembleDebug
 
       - name: Verify APK output
+        shell: bash
         run: |
-          set -euo pipefail
+          set -Eeuo pipefail
           APK=$(find upstream/termux-app/app/build/outputs/apk/debug -name '*.apk' -print -quit)
           test -n "$APK"
           echo "APK=$APK" >> "$GITHUB_ENV"
