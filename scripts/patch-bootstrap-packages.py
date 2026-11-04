@@ -60,9 +60,9 @@ print(f"Patched optional foot terminfo source out of {recipe}")
 unbound_recipe = root / "packages/libunbound/build.sh"
 unbound_text = unbound_recipe.read_text()
 for line in (
-    'TERMUX_PKG_BUILD_DEPENDS="python, swig"\\n',
-    'TERMUX_PKG_PYTHON_COMMON_DEPS="wheel"\\n',
-    'TERMUX_PKG_PYTHON_BUILD_DEPS="swig"\\n',
+    'TERMUX_PKG_BUILD_DEPENDS="python, swig"\n',
+    'TERMUX_PKG_PYTHON_COMMON_DEPS="wheel"\n',
+    'TERMUX_PKG_PYTHON_BUILD_DEPS="swig"\n',
 ):
     count = unbound_text.count(line)
     if count != 1:
