@@ -59,6 +59,13 @@ jobs:
           sed -i 's/^TERMUX_APP__PACKAGE_NAME=.*/TERMUX_APP__PACKAGE_NAME="'"$TERMUX_PACKAGE_NAME"'"/' upstream/termux-packages/scripts/properties.sh
           grep -nE '^TERMUX_APP(__PACKAGE_NAME|_PACKAGE)=' upstream/termux-packages/scripts/properties.sh
 
+      - name: Build matching Termux package-builder image
+        working-directory: upstream/termux-packages
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          docker build --pull -t ghcr.io/termux/package-builder ./scripts
+
       - name: Build custom ARM64 bootstrap
         working-directory: upstream/termux-packages
         shell: bash
