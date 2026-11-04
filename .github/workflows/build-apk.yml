@@ -65,7 +65,8 @@ jobs:
           set -Eeuo pipefail
           python3 scripts/patch-bootstrap-packages.py upstream/termux-packages
 
-      - name: Build matching Termux package-builder image\n        working-directory: upstream/termux-packages
+      - name: Build matching Termux package-builder image
+        working-directory: upstream/termux-packages
         shell: bash
         run: |
           set -Eeuo pipefail

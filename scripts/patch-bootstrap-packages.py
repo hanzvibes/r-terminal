@@ -14,34 +14,38 @@ text = recipe.read_text()
 
 replacements = [
     (
-        '                    "$(. "$TERMUX_SCRIPTDIR/x11-packages/alacritty/build.sh"; echo "$TERMUX_PKG_VERSION")"\n'
-        '                    "$(. "$TERMUX_SCRIPTDIR/x11-packages/foot/build.sh"; echo "$TERMUX_PKG_VERSION")")',
-        '                    "$(. "$TERMUX_SCRIPTDIR/x11-packages/alacritty/build.sh"; echo "$TERMUX_PKG_VERSION")")',
+        '''                    "$(. "$TERMUX_SCRIPTDIR/x11-packages/alacritty/build.sh"; echo "$TERMUX_PKG_VERSION")"
+                    "$(. "$TERMUX_SCRIPTDIR/x11-packages/foot/build.sh"; echo "$TERMUX_PKG_VERSION")")''',
+        '''                    "$(. "$TERMUX_SCRIPTDIR/x11-packages/alacritty/build.sh"; echo "$TERMUX_PKG_VERSION")")''',
     ),
     (
-        '                   "$(. "$TERMUX_SCRIPTDIR/x11-packages/alacritty/build.sh"; echo "$TERMUX_PKG_SRCURL")"\n'
-        '                   "$(. "$TERMUX_SCRIPTDIR/x11-packages/foot/build.sh"; echo "$TERMUX_PKG_SRCURL")")',
-        '                   "$(. "$TERMUX_SCRIPTDIR/x11-packages/alacritty/build.sh"; echo "$TERMUX_PKG_SRCURL")")',
+        '''                   "$(. "$TERMUX_SCRIPTDIR/x11-packages/alacritty/build.sh"; echo "$TERMUX_PKG_SRCURL")"
+                   "$(. "$TERMUX_SCRIPTDIR/x11-packages/foot/build.sh"; echo "$TERMUX_PKG_SRCURL")")''',
+        '''                   "$(. "$TERMUX_SCRIPTDIR/x11-packages/alacritty/build.sh"; echo "$TERMUX_PKG_SRCURL")")''',
     ),
     (
-        '                   "$(. "$TERMUX_SCRIPTDIR/x11-packages/alacritty/build.sh"; echo "$TERMUX_PKG_SHA256")"\n'
-        '                   "$(. "$TERMUX_SCRIPTDIR/x11-packages/foot/build.sh"; echo "$TERMUX_PKG_SHA256")")',
-        '                   "$(. "$TERMUX_SCRIPTDIR/x11-packages/alacritty/build.sh"; echo "$TERMUX_PKG_SHA256")")',
-    ),
-    (
-        '\t# Upstream instructions for building foot\'s terminfo\n'
-        '\t# See: https://codeberg.org/dnkl/foot/src/branch/master/INSTALL.md#terminfo\n'
-        '\tsed \'s/@default_terminfo@/foot/g\' "$TERMUX_PKG_SRCDIR/foot/foot.info" | \\\n'
-        '\t\ttic -x -e foot,foot-direct -o "$TI" -\n',
-        '',
+        '''                   "$(. "$TERMUX_SCRIPTDIR/x11-packages/alacritty/build.sh"; echo "$TERMUX_PKG_SHA256")"
+                   "$(. "$TERMUX_SCRIPTDIR/x11-packages/foot/build.sh"; echo "$TERMUX_PKG_SHA256")")''',
+        '''                   "$(. "$TERMUX_SCRIPTDIR/x11-packages/alacritty/build.sh"; echo "$TERMUX_PKG_SHA256")")''',
     ),
 ]
 
 for before, after in replacements:
     count = text.count(before)
     if count != 1:
-        raise SystemExit(f"Expected exactly one patch target, found {count}: {before[:100]!r}")
+        raise SystemExit(f"Expected exactly one patch target, found {count}")
     text = text.replace(before, after, 1)
+
+lines = text.splitlines(keepends=True)
+markers = [i for i, line in enumerate(lines) if line.strip() == "# Upstream instructions for building foot's terminfo"]
+if len(markers) != 1:
+    raise SystemExit(f"Expected one optional foot terminfo block, found {len(markers)}")
+start = markers[0]
+block = lines[start:start + 4]
+if len(block) != 4 or "tic -x -e foot,foot-direct" not in block[-1]:
+    raise SystemExit("Optional foot terminfo block did not match expected upstream layout")
+del lines[start:start + 4]
+text = "".join(lines)
 
 if "x11-packages/foot/build.sh" in text or "foot/foot.info" in text:
     raise SystemExit("Foot source reference remains after patch")
