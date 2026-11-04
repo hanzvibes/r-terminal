@@ -9,7 +9,7 @@ R-Terminal is an Android terminal app build overlay based on the upstream Termux
 - App label: `R-Terminal`
 - Target ABI: `arm64-v8a`
 - GitHub Actions builds a debug APK artifact.
-- Debian + OpenCode are installed manually after installing the APK; see `scripts/setup-debian-opencode.sh`.
+- Debian + OpenCode can be installed from the R-Terminal shell with `bash scripts/setup-debian-opencode.sh`.
 
 ## Build
 
@@ -37,7 +37,7 @@ opencode
 
 ## Important limitations
 
-This is an early build pipeline, not a verified release. The workflow has not yet been run in GitHub Actions, and the APK has not been installed on a physical Android device. No release signing, Play Store publishing, custom apt repository, preinstalled Debian rootfs, or first-run GUI wizard is included yet.
+This is an early build pipeline, not a verified release. The GitHub Actions APK build is still being validated, and the APK has not yet been installed on a physical Android device. No release signing, Play Store publishing, custom apt repository, preinstalled Debian rootfs, or first-run GUI wizard is included yet.
 
 ## License
 
