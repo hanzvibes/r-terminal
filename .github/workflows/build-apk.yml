@@ -1,0 +1,102 @@
+name: Build R-Terminal APK
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: r-terminal-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-arm64:
+    name: Build ARM64 debug APK with matching bootstrap
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+    steps:
+      - name: Checkout R-Terminal
+        uses: actions/checkout@v4
+
+      - name: Read build configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          source config/build.env
+          {
+            echo "TERMUX_UPSTREAM_REF=$TERMUX_UPSTREAM_REF"
+            echo "TERMUX_PACKAGE_NAME=$TERMUX_PACKAGE_NAME"
+            echo "TERMUX_APP_NAME=$TERMUX_APP_NAME"
+            echo "TERMUX_ARCH=$TERMUX_ARCH"
+            echo "TERMUX_PACKAGES_REPO=$TERMUX_PACKAGES_REPO"
+            echo "TERMUX_PACKAGES_REF=$TERMUX_PACKAGES_REF"
+          } >> "$GITHUB_ENV"
+
+      - name: Checkout upstream Termux app
+        uses: actions/checkout@v4
+        with:
+          repository: termux/termux-app
+          ref: ${{ env.TERMUX_UPSTREAM_REF }}
+          path: upstream/termux-app
+
+      - name: Checkout Termux packages
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.TERMUX_PACKAGES_REPO }}
+          ref: ${{ env.TERMUX_PACKAGES_REF }}
+          path: upstream/termux-packages
+
+      - name: Apply R-Terminal app identity
+        run: |
+          python3 scripts/patch-termux.py upstream/termux-app
+          python3 scripts/patch-bootstrap-gradle.py upstream/termux-app/app/build.gradle
+          sed -i 's/^TERMUX_APP_PACKAGE=.*/TERMUX_APP_PACKAGE="'"$TERMUX_PACKAGE_NAME"'"/' upstream/termux-packages/scripts/properties.sh
+          grep -n 'TERMUX_APP_PACKAGE' upstream/termux-packages/scripts/properties.sh | head
+
+      - name: Build custom ARM64 bootstrap
+        working-directory: upstream/termux-packages
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ./scripts/run-docker.sh ./scripts/clean.sh
+          ./scripts/run-docker.sh ./scripts/build-bootstraps.sh --architectures "$TERMUX_ARCH" --android10 -f
+          mkdir -p ../termux-app/app/src/main/cpp
+          cp bootstrap-aarch64.zip ../termux-app/app/src/main/cpp/
+          test -s ../termux-app/app/src/main/cpp/bootstrap-aarch64.zip
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Build debug APK
+        working-directory: upstream/termux-app
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          chmod +x ./gradlew
+          ./gradlew --no-daemon :app:assembleDebug
+
+      - name: Verify APK output
+        run: |
+          set -euo pipefail
+          APK=$(find upstream/termux-app/app/build/outputs/apk/debug -name '*.apk' -print -quit)
+          test -n "$APK"
+          echo "APK=$APK" >> "$GITHUB_ENV"
+          ls -lh "$APK"
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: r-terminal-debug-arm64
+          path: ${{ env.APK }}
+          if-no-files-found: error
+          retention-days: 14
