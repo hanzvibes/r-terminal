@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""Apply a build-only compatibility patch to Termux's ncurses bootstrap recipe.
+"""Apply build-only compatibility patches to Termux bootstrap recipes.
 
 The pinned foot archive currently fails its upstream SHA-256 check from Codeberg.
 Foot's terminfo entry is optional for R-Terminal, so omit only that optional
 terminfo source. The optional pyunbound Python binding is also disabled: the
 ARM64 bootstrap needs native libunbound, not its SWIG-generated Python wrapper.
-All remaining source downloads keep their original checksums.
+Disabling pyunbound also removes the python build dependency that pulled
+libexpat into the build prefix, which unbound's configure requires, so the
+libexpat dependency is declared explicitly. All remaining source downloads
+keep their original checksums.
 """
 from pathlib import Path
 import sys
@@ -71,5 +74,18 @@ for line in (
 if unbound_text.count("--with-pyunbound") != 1:
     raise SystemExit("Expected exactly one --with-pyunbound option")
 unbound_text = unbound_text.replace("--with-pyunbound", "--without-pyunbound", 1)
+
+# unbound's configure is invoked with --with-libexpat=$TERMUX_PREFIX and
+# hard-fails without expat.h. Upstream only satisfied that check because the
+# python build dependency pulls libexpat into the prefix, and pyunbound is
+# disabled above, so declare libexpat directly. It also belongs in the
+# bootstrap rootfs because unbound links it at runtime.
+unbound_deps_line = 'TERMUX_PKG_DEPENDS="libevent, libnghttp2, openssl, resolv-conf"\n'
+unbound_deps_patched = 'TERMUX_PKG_DEPENDS="libevent, libexpat, libnghttp2, openssl, resolv-conf"\n'
+count = unbound_text.count(unbound_deps_line)
+if count != 1:
+    raise SystemExit(f"Expected one libunbound dependency line, found {count}")
+unbound_text = unbound_text.replace(unbound_deps_line, unbound_deps_patched, 1)
 unbound_recipe.write_text(unbound_text)
 print(f"Disabled optional pyunbound binding in {unbound_recipe}")
+print(f"Declared libexpat dependency in {unbound_recipe}")
