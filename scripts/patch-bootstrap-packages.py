@@ -89,3 +89,15 @@ unbound_text = unbound_text.replace(unbound_deps_line, unbound_deps_patched, 1)
 unbound_recipe.write_text(unbound_text)
 print(f"Disabled optional pyunbound binding in {unbound_recipe}")
 print(f"Declared libexpat dependency in {unbound_recipe}")
+
+# The pinned docbook-xml recipe downloads the DTD archives from docbook.org,
+# which now returns 404. Upstream termux-packages switched to the
+# archive.docbook.org mirror; the checksums are identical.
+dtd_recipe = root / "packages/docbook-xml/build.sh"
+dtd_text = dtd_recipe.read_text()
+old_url, new_url = "https://docbook.org/xml/", "https://archive.docbook.org/xml/"
+count = dtd_text.count(old_url)
+if count != 5:
+    raise SystemExit(f"Expected five docbook.org source URLs in {dtd_recipe}, found {count}")
+dtd_recipe.write_text(dtd_text.replace(old_url, new_url))
+print(f"Switched docbook-xml sources to archive.docbook.org in {dtd_recipe}")
